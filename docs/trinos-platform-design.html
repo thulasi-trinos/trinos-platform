@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trinos — Status Report Platform · Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue-900:#1B3A52; --blue-800:#234C6B; --blue-700:#2E5878; --blue-600:#356A92;
+  --blue-500:#3D7AA8; --blue-400:#5B8BB5; --blue-300:#8DB1CE; --blue-200:#C0D5E6;
+  --blue-100:#DCE8F1; --blue-50:#EEF4F9;
+  --silver-700:#6B727B; --silver-600:#8A9099; --silver-500:#9CA2AB; --silver-400:#AEB4BC;
+  --silver-300:#C5CAD1; --silver-200:#D9DDE2; --silver-100:#E8EBEE; --silver-50:#F4F6F8;
+  --ink:#172430; --ink-2:#3A4756; --ink-3:#6A7686; --ink-4:#97A1AD;
+  --paper:#FFFFFF; --paper-2:#F5F7FA; --paper-3:#EEF1F5;
+  --line:#E4E9EE; --line-2:#D6DDE4;
+  --ok:#2E8B6F; --ok-bg:#E4F2EC; --warn:#C8852A; --warn-bg:#FBF0DF; --danger:#C0473F; --danger-bg:#FBE9E7;
+  --shadow-sm:0 1px 2px rgba(23,36,48,.06),0 1px 3px rgba(23,36,48,.04);
+  --shadow-md:0 4px 14px rgba(23,36,48,.08),0 2px 6px rgba(23,36,48,.05);
+  --shadow-lg:0 18px 50px rgba(23,36,48,.16);
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px;
+  --grad-tri:linear-gradient(135deg,#5B8BB5 0%,#3D7AA8 55%,#2E5878 100%);
+  --grad-soft:linear-gradient(160deg,#EEF4F9 0%,#F5F7FA 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Hanken Grotesk',system-ui,sans-serif;
+  color:var(--ink); background:var(--paper-2);
+  -webkit-font-smoothing:antialiased; line-height:1.55; overflow-x:hidden;
+}
+h1,h2,h3,h4,.font-display{font-family:'Sora',sans-serif;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+::selection{background:var(--blue-200);color:var(--blue-900)}
+.hidden{display:none!important}
+
+/* ---------- LOGO ---------- */
+.tri{display:block}
+.tri-wrap{display:flex;align-items:center;gap:11px}
+.tri-word{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:.16em;font-size:18px;color:var(--ink)}
+.tri-word .o{color:var(--blue-500)}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;display:flex;background:var(--paper);z-index:50}
+.login-left{flex:1.1;background:var(--grad-tri);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:54px 56px;color:#fff}
+.login-left::before{content:"";position:absolute;inset:0;background-image:
+  linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:46px 46px;opacity:.5}
+.login-tri-bg{position:absolute;right:-120px;bottom:-140px;width:560px;opacity:.16;transform:rotate(8deg)}
+.login-tri-bg2{position:absolute;left:-90px;top:60px;width:230px;opacity:.10;transform:rotate(-20deg)}
+.login-brand{display:flex;align-items:center;gap:13px;position:relative;z-index:2}
+.login-brand .tri-word{color:#fff}
+.login-brand .tri-word .o{color:#CFE0EE}
+.login-hero{position:relative;z-index:2;max-width:440px}
+.login-hero h1{font-size:44px;line-height:1.08;font-weight:700;margin-bottom:20px}
+.login-hero p{font-size:17px;color:#DCEAF4;line-height:1.6;font-weight:400}
+.login-points{display:flex;flex-direction:column;gap:14px;margin-top:34px}
+.login-point{display:flex;align-items:center;gap:13px;font-size:15px;color:#EAF2F8}
+.lp-dot{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;flex-shrink:0}
+.login-foot{position:relative;z-index:2;font-size:13px;color:#BFD5E6}
+.login-right{flex:.9;display:flex;align-items:center;justify-content:center;padding:40px}
+.login-card{width:100%;max-width:380px}
+.login-card .eyebrow{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-500);margin-bottom:10px}
+.login-card h2{font-size:28px;font-weight:600;margin-bottom:8px}
+.login-card .sub{color:var(--ink-3);font-size:15px;margin-bottom:30px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
+.input{width:100%;height:46px;border:1.5px solid var(--line-2);border-radius:var(--r-md);padding:0 14px;font-size:15px;font-family:inherit;color:var(--ink);background:var(--paper);transition:.15s}
+.input:focus{outline:none;border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-50)}
+.input::placeholder{color:var(--ink-4)}
+.field-row{display:flex;justify-content:space-between;align-items:center}
+.link{color:var(--blue-500);font-size:13px;font-weight:600;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:var(--r-md);font-size:15px;font-weight:600;font-family:inherit;transition:.16s;white-space:nowrap}
+.btn-primary{background:var(--blue-500);color:#fff;box-shadow:0 4px 12px rgba(61,122,168,.28)}
+.btn-primary:hover{background:var(--blue-600);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-block{width:100%;margin-top:8px}
+.btn-ghost{background:var(--paper);color:var(--ink-2);border:1.5px solid var(--line-2)}
+.btn-ghost:hover{background:var(--paper-2);border-color:var(--silver-400)}
+.btn-sm{height:38px;padding:0 15px;font-size:14px;border-radius:var(--r-sm)}
+.btn-tiny{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.login-note{margin-top:24px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3);text-align:center}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none;min-height:100vh}
+#app.on{display:flex}
+.sidebar{width:248px;background:var(--blue-900);color:#fff;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:30}
+.sb-brand{padding:22px 20px 18px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-brand .tri-word{color:#fff;font-size:16px}
+.sb-brand .tri-word .o{color:var(--blue-300)}
+.sb-role{margin:16px 14px 8px;padding:12px;background:rgba(255,255,255,.06);border-radius:var(--r-md)}
+.sb-role .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-300);font-weight:600;margin-bottom:8px}
+.role-select{width:100%;height:38px;background:var(--blue-800);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:500;padding:0 10px;cursor:pointer}
+.role-select:focus{outline:none;border-color:var(--blue-400)}
+.role-select option{color:var(--ink)}
+.sb-nav{flex:1;padding:10px 14px;overflow-y:auto}
+.nav-section{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--blue-300);font-weight:600;padding:14px 12px 7px;opacity:.8}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-sm);color:#C7D7E4;font-size:14.5px;font-weight:500;margin-bottom:2px;cursor:pointer;transition:.13s;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:var(--blue-500);color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.nav-item .ico{width:19px;text-align:center;flex-shrink:0}
+.nav-item .badge{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px}
+.nav-item.active .badge{background:rgba(255,255,255,.28)}
+.sb-user{padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:11px}
+.avatar{width:38px;height:38px;border-radius:11px;background:var(--grad-tri);display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;font-family:'Sora'}
+.avatar.sm{width:32px;height:32px;border-radius:9px;font-size:12px}
+.avatar.lg{width:52px;height:52px;border-radius:14px;font-size:18px}
+.sb-user .meta{min-width:0}
+.sb-user .nm{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user .rl{font-size:12px;color:var(--blue-300)}
+
+/* main */
+.main{margin-left:248px;flex:1;min-width:0}
+.topbar{height:66px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 30px;position:sticky;top:0;z-index:20}
+.topbar h1{font-size:21px;font-weight:600}
+.topbar .crumb{font-size:13px;color:var(--ink-4);font-weight:500}
+.searchbar{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-md);height:40px;padding:0 14px;width:280px;color:var(--ink-4)}
+.searchbar input{border:none;background:none;outline:none;font-family:inherit;font-size:14px;color:var(--ink);width:100%}
+.topbar-icon{width:40px;height:40px;border-radius:var(--r-md);display:grid;place-items:center;color:var(--ink-3);position:relative;border:1px solid var(--line);background:var(--paper)}
+.topbar-icon:hover{background:var(--paper-2);color:var(--ink)}
+.topbar-icon .dot{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--paper)}
+.content{padding:30px;max-width:1240px}
+
+/* page header */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;gap:18px;flex-wrap:wrap}
+.page-head .pe{font-size:13px;font-weight:600;color:var(--blue-500);letter-spacing:.04em;margin-bottom:6px}
+.page-head h2{font-size:26px;font-weight:600;line-height:1.2}
+.page-head p{color:var(--ink-3);font-size:15px;margin-top:5px;max-width:540px}
+.head-actions{display:flex;gap:10px;align-items:center}
+
+/* cards & grid */
+.grid{display:grid;gap:18px}
+.g-4{grid-template-columns:repeat(4,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-2-1{grid-template-columns:1.6fr 1fr}
+.g-1-2{grid-template-columns:1fr 1.7fr}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-sm)}
+.card-pad{padding:22px}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
+.card-head h3{font-size:16px;font-weight:600}
+.card-head .sub{font-size:13px;color:var(--ink-4);margin-top:2px}
+
+/* metric / stat */
+.stat{padding:20px 22px;position:relative;overflow:hidden}
+.stat .corner{position:absolute;top:-22px;right:-22px;width:74px;height:74px;opacity:.10}
+.stat .ico-box{width:42px;height:42px;border-radius:var(--r-md);display:grid;place-items:center;font-size:19px;margin-bottom:14px}
+.stat .val{font-family:'Sora';font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.stat .lbl{font-size:13.5px;color:var(--ink-3);font-weight:500;margin-top:7px}
+.stat .delta{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;margin-top:10px;padding:3px 8px;border-radius:20px}
+.delta.up{color:var(--ok);background:var(--ok-bg)}
+.delta.down{color:var(--danger);background:var(--danger-bg)}
+.delta.flat{color:var(--ink-3);background:var(--paper-3)}
+.ic-blue{background:var(--blue-50);color:var(--blue-600)}
+.ic-silver{background:var(--silver-100);color:var(--silver-700)}
+.ic-ok{background:var(--ok-bg);color:var(--ok)}
+.ic-warn{background:var(--warn-bg);color:var(--warn)}
+
+/* report list */
+.rep-row{display:flex;align-items:flex-start;gap:14px;padding:16px 22px;border-bottom:1px solid var(--line);transition:.12s}
+.rep-row:last-child{border-bottom:none}
+.rep-row:hover{background:var(--paper-2)}
+.rep-date{width:54px;text-align:center;flex-shrink:0}
+.rep-date .d{font-family:'Sora';font-size:20px;font-weight:700;line-height:1}
+.rep-date .m{font-size:11px;text-transform:uppercase;color:var(--ink-4);font-weight:600;letter-spacing:.04em;margin-top:2px}
+.rep-body{flex:1;min-width:0}
+.rep-body .t{font-size:14.5px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.rep-body .x{font-size:13.5px;color:var(--ink-3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.01em}
+.tag-ok{background:var(--ok-bg);color:var(--ok)}
+.tag-warn{background:var(--warn-bg);color:var(--warn)}
+.tag-danger{background:var(--danger-bg);color:var(--danger)}
+.tag-blue{background:var(--blue-50);color:var(--blue-600)}
+.tag-gray{background:var(--paper-3);color:var(--ink-3)}
+
+/* submission form */
+.form-card{max-width:760px}
+.form-field{padding:20px 24px;border-bottom:1px solid var(--line)}
+.form-field:last-child{border-bottom:none}
+.ff-head{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.ff-num{width:24px;height:24px;border-radius:7px;background:var(--blue-50);color:var(--blue-600);font-size:12px;font-weight:700;display:grid;place-items:center;font-family:'Sora'}
+.ff-head .ttl{font-size:15px;font-weight:600}
+.ff-head .req{font-size:11px;font-weight:700;color:var(--danger);background:var(--danger-bg);padding:1px 7px;border-radius:5px}
+.ff-head .opt{font-size:11px;font-weight:600;color:var(--ink-4);background:var(--paper-3);padding:1px 7px;border-radius:5px}
+.ff-hint{font-size:13px;color:var(--ink-4);margin:0 0 12px 34px}
+.toolbar{display:flex;gap:2px;margin:0 0 8px 34px;padding:5px;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;width:fit-content}
+.tb-btn{width:30px;height:30px;border-radius:6px;display:grid;place-items:center;color:var(--ink-3);font-size:14px}
+.tb-btn:hover{background:var(--paper);color:var(--ink);box-shadow:var(--shadow-sm)}
+.textarea{width:calc(100% - 34px);margin-left:34px;min-height:88px;border:1.5px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;font-family:inherit;font-size:14.5px;color:var(--ink);resize:vertical;line-height:1.6}
+.textarea:focus{outline:none;border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-50)}
+.ff-foot{margin-left:34px;margin-top:7px;font-size:12px;color:var(--ink-4);display:flex;justify-content:space-between}
+.form-foot{padding:18px 24px;display:flex;align-items:center;gap:12px;background:var(--paper-2);border-top:1px solid var(--line);border-radius:0 0 var(--r-lg) var(--r-lg)}
+.form-foot .save-note{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-3);margin-right:auto}
+
+/* progress ring & bars */
+.bar-track{height:8px;background:var(--paper-3);border-radius:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px;background:var(--grad-tri)}
+.bar-fill.ok{background:var(--ok)} .bar-fill.warn{background:var(--warn)} .bar-fill.danger{background:var(--danger)}
+
+/* team grid */
+.member-row{display:grid;grid-template-columns:1.6fr repeat(5,1fr);align-items:center;padding:13px 22px;border-bottom:1px solid var(--line);gap:8px}
+.member-row.head{background:var(--paper-2);font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em}
+.member-row:last-child{border-radius:0 0 var(--r-lg) var(--r-lg)}
+.member-cell{display:flex;align-items:center;gap:11px;min-width:0}
+.member-cell .nm{font-size:14px;font-weight:600}
+.member-cell .em{font-size:12.5px;color:var(--ink-4)}
+.daycell{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:600;margin:0 auto}
+.dc-ok{background:var(--ok-bg);color:var(--ok)}
+.dc-miss{background:var(--paper-3);color:var(--ink-4)}
+.dc-late{background:var(--warn-bg);color:var(--warn)}
+
+/* blocker */
+.blocker{display:flex;gap:13px;padding:15px 18px;border:1px solid var(--line);border-left:3px solid var(--danger);border-radius:var(--r-md);background:var(--paper);margin-bottom:12px}
+.blocker.med{border-left-color:var(--warn)}
+.blocker .bk-ico{width:34px;height:34px;border-radius:9px;background:var(--danger-bg);color:var(--danger);display:grid;place-items:center;flex-shrink:0;font-size:16px}
+.blocker.med .bk-ico{background:var(--warn-bg);color:var(--warn)}
+.blocker .bk-body{flex:1;min-width:0}
+.blocker .bk-t{font-size:14px;font-weight:600;margin-bottom:3px}
+.blocker .bk-x{font-size:13px;color:var(--ink-3);line-height:1.5}
+.blocker .bk-meta{font-size:12px;color:var(--ink-4);margin-top:7px;display:flex;align-items:center;gap:8px}
+
+/* compliance bars list */
+.team-bar{display:grid;grid-template-columns:140px 1fr 56px;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--line)}
+.team-bar:last-child{border-bottom:none}
+.team-bar .tn{font-size:14px;font-weight:600}
+.team-bar .tn small{display:block;font-size:12px;color:var(--ink-4);font-weight:400}
+.team-bar .pct{font-family:'Sora';font-weight:700;font-size:15px;text-align:right}
+
+/* admin table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em;padding:13px 22px;border-bottom:1px solid var(--line);background:var(--paper-2)}
+.tbl td{padding:14px 22px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--paper-2)}
+.cell-user{display:flex;align-items:center;gap:11px}
+.cell-user .nm{font-weight:600}
+.cell-user .em{font-size:12.5px;color:var(--ink-4)}
+.role-pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:20px}
+.rp-emp{background:var(--silver-100);color:var(--silver-700)}
+.rp-tl{background:var(--blue-50);color:var(--blue-600)}
+.rp-sa{background:#EFE7F5;color:#7B4A9E}
+.rp-adm{background:var(--warn-bg);color:var(--warn)}
+.tbl-act{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--ink-4)}
+.tbl-act:hover{background:var(--paper-3);color:var(--ink)}
+
+/* chat */
+.chat-wrap{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 66px - 60px);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--paper)}
+.chat-list{border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--paper-2)}
+.chat-search{padding:14px;border-bottom:1px solid var(--line)}
+.chat-search .searchbar{width:100%;margin:0;background:var(--paper)}
+.chat-conv{flex:1;overflow-y:auto}
+.conv-item{display:flex;gap:11px;padding:13px 14px;cursor:pointer;border-bottom:1px solid var(--line);position:relative}
+.conv-item:hover{background:var(--paper)}
+.conv-item.active{background:var(--paper);box-shadow:inset 3px 0 0 var(--blue-500)}
+.conv-item .ci-body{flex:1;min-width:0}
+.conv-item .ci-top{display:flex;justify-content:space-between;gap:8px}
+.conv-item .ci-nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item .ci-time{font-size:11.5px;color:var(--ink-4);flex-shrink:0}
+.conv-item .ci-last{font-size:13px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv-item .ci-unread{position:absolute;right:14px;bottom:14px;background:var(--blue-500);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px}
+.chat-panel{display:flex;flex-direction:column}
+.chat-top{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.chat-top .ct-nm{font-size:15px;font-weight:600}
+.chat-top .ct-sub{font-size:12.5px;color:var(--ok);display:flex;align-items:center;gap:6px}
+.chat-top .ct-sub::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.chat-body{flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:14px;background:var(--paper-2)}
+.chat-day{text-align:center;font-size:12px;color:var(--ink-4);font-weight:500;margin:4px 0}
+.msg{max-width:64%;display:flex;flex-direction:column;gap:4px}
+.msg.in{align-self:flex-start}
+.msg.out{align-self:flex-end;align-items:flex-end}
+.msg .bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5}
+.msg.in .bubble{background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:5px}
+.msg.out .bubble{background:var(--blue-500);color:#fff;border-bottom-right-radius:5px}
+.msg .meta{font-size:11px;color:var(--ink-4);padding:0 4px}
+.msg-ref{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--blue-700);display:flex;align-items:center;gap:9px}
+.bot-card{align-self:flex-start;max-width:72%;background:var(--paper);border:1px solid var(--line);border-radius:14px;border-bottom-left-radius:5px;padding:13px 15px}
+.bot-card .bc-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--blue-600);margin-bottom:8px}
+.bot-card .bc-quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.quick{font-size:12.5px;font-weight:600;color:var(--blue-600);background:var(--blue-50);border:1px solid var(--blue-100);padding:6px 12px;border-radius:20px}
+.quick:hover{background:var(--blue-100)}
+.chat-input{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--line)}
+.chat-input input{flex:1;height:44px;border:1.5px solid var(--line-2);border-radius:22px;padding:0 18px;font-family:inherit;font-size:14px;outline:none}
+.chat-input input:focus{border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-50)}
+.chat-send{width:44px;height:44px;border-radius:50%;background:var(--blue-500);color:#fff;display:grid;place-items:center;font-size:17px}
+.chat-send:hover{background:var(--blue-600)}
+
+/* misc */
+.divider{height:1px;background:var(--line);margin:18px 0}
+.flex{display:flex} .between{justify-content:space-between} .center{align-items:center} .gap{gap:12px}
+.muted{color:var(--ink-3)} .small{font-size:13px}
+.section-title{font-size:13px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin:30px 0 14px}
+.empty{padding:46px 20px;text-align:center;color:var(--ink-4)}
+.empty .ei{width:62px;height:62px;border-radius:18px;background:var(--paper-3);display:grid;place-items:center;margin:0 auto 14px;font-size:26px;color:var(--silver-500)}
+
+/* toast */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:13px 20px;border-radius:var(--r-md);font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);z-index:80;transition:transform .35s cubic-bezier(.2,.8,.3,1)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast .ti{width:22px;height:22px;border-radius:50%;background:var(--ok);display:grid;place-items:center;font-size:13px}
+
+/* fade-in */
+.fade{animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.view{display:none}
+.view.active{display:block}
+
+@media(max-width:1100px){.g-4{grid-template-columns:repeat(2,1fr)}.g-3{grid-template-columns:1fr}.g-2-1,.g-1-2,.g-2{grid-template-columns:1fr}}
+@media(max-width:760px){.login-left{display:none}.sidebar{transform:translateX(-100%)}.main{margin-left:0}}
+</style>
+</head>
+<body>
+<!-- content injected by script -->
+<div id="root"></div>
+<div id="toast"><span class="ti">✓</span><span id="toast-msg">Saved</span></div>
+<script>
+/* ============ TRINOS — interactive design prototype ============ */
+
+/* ---- Tetrahedron logo (matches brand mark) ---- */
+function logo(size){
+  size = size || 34;
+  const id = 'g'+Math.random().toString(36).slice(2,7);
+  return `<svg class="tri" width="${size}" height="${size}" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="${id}a" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#7DA6C9"/><stop offset="1" stop-color="#3D7AA8"/>
+      </linearGradient>
+      <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#C9CED5"/><stop offset="1" stop-color="#9AA1AB"/>
+      </linearGradient>
+      <linearGradient id="${id}c" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5B8BB5"/><stop offset="1" stop-color="#2E5878"/>
+      </linearGradient>
+    </defs>
+    <polygon points="50,8 8,88 50,58" fill="url(#${id}a)"/>
+    <polygon points="50,8 92,88 50,58" fill="url(#${id}b)"/>
+    <polygon points="8,88 92,88 50,58" fill="url(#${id}c)"/>
+    <path d="M50,8 L50,58 M8,88 L50,58 M92,88 L50,58" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <polygon points="50,8 8,88 92,88" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" opacity=".55"/>
+  </svg>`;
+}
+function ic(n){return `<i style="font-style:normal">${n}</i>`;}
+function avatar(initials,cls){return `<div class="avatar ${cls||''}">${initials}</div>`;}
+
+/* ---- State ---- */
+const ROLES = {
+  employee:{name:'Maya Sharma',role:'Software Intern · Platform Team',init:'MS',title:'Employee'},
+  lead:{name:'David Okoye',role:'Team Lead · Platform Team',init:'DO',title:'Team Lead'},
+  super:{name:'Anita Reyes',role:'Managing Director',init:'AR',title:'MD'},
+  admin:{name:'Sam Cole',role:'Platform Administrator',init:'SC',title:'Admin'}
+};
+let state = {role:'employee', view:'dashboard'};
+
+/* ---- Navigation maps per role ---- */
+const NAV = {
+  employee:[
+    {sec:'Workspace'},
+    {id:'dashboard',ico:'◫',label:'Dashboard'},
+    {id:'submit',ico:'✎',label:'Submit Report'},
+    {id:'myreports',ico:'☰',label:'My Reports'},
+    {sec:'Communication'},
+    {id:'messages',ico:'✉',label:'Messages',badge:2},
+  ],
+  lead:[
+    {sec:'Workspace'},
+    {id:'leaddash',ico:'◫',label:'Team Dashboard'},
+    {id:'teamreports',ico:'☰',label:'Team Reports'},
+    {id:'blockers',ico:'▲',label:'Blockers',badge:3},
+    {sec:'Communication'},
+    {id:'messages',ico:'✉',label:'Messages',badge:5},
+  ],
+  super:[
+    {sec:'Organization'},
+    {id:'orgdash',ico:'◫',label:'Org Dashboard'},
+    {id:'allreports',ico:'☰',label:'All Reports'},
+    {id:'compliance',ico:'◭',label:'Compliance'},
+    {sec:'Communication'},
+    {id:'messages',ico:'✉',label:'Messages'},
+  ],
+  admin:[
+    {sec:'Administration'},
+    {id:'users',ico:'☷',label:'Users'},
+    {id:'teams',ico:'◈',label:'Teams'},
+    {id:'settings',ico:'⚙',label:'Settings'},
+    {id:'audit',ico:'❏',label:'Audit Log'},
+  ]
+};
+const DEFAULT_VIEW = {employee:'dashboard',lead:'leaddash',super:'orgdash',admin:'users'};
+
+/* ============ RENDER: LOGIN ============ */
+function renderLogin(){
+  return `<div id="login">
+    <div class="login-left">
+      <div class="login-tri-bg">${logo(560)}</div>
+      <div class="login-tri-bg2">${logo(230)}</div>
+      <div class="login-brand">${logo(40)}<span class="tri-word">TRIN<span class="o">OS</span></span></div>
+      <div class="login-hero">
+        <h1>One report. The right eyes. Every day.</h1>
+        <p>Trinos replaces scattered email updates with structured daily status reports that route automatically to the people who need them.</p>
+        <div class="login-points">
+          <div class="login-point"><span class="lp-dot">✎</span> Four structured fields — no more freeform email chaos</div>
+          <div class="login-point"><span class="lp-dot">⇆</span> Auto-routed to your lead and leadership in real time</div>
+          <div class="login-point"><span class="lp-dot">◫</span> Role-based dashboards from intern to MD</div>
+        </div>
+      </div>
+      <div class="login-foot">Confidential · Internal use only · v1.0</div>
+    </div>
+    <div class="login-right">
+      <div class="login-card">
+        <div class="eyebrow">Welcome back</div>
+        <h2>Sign in to Trinos</h2>
+        <p class="sub">Use your organization email and password.</p>
+        <div class="field">
+          <label>Work email</label>
+          <input class="input" type="email" value="maya.sharma@trinos.io" />
+        </div>
+        <div class="field">
+          <div class="field-row" style="margin-bottom:7px">
+            <label style="margin:0">Password</label>
+            <a class="link" href="#" onclick="return false">Forgot?</a>
+          </div>
+          <input class="input" type="password" value="••••••••••" />
+        </div>
+        <button class="btn btn-primary btn-block" onclick="enterApp()">Sign in →</button>
+        <div class="login-note">Accounts are provisioned by your administrator.<br>Self-registration is not available.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ RENDER: APP SHELL ============ */
+function renderApp(){
+  const u = ROLES[state.role];
+  const nav = NAV[state.role].map(n=>{
+    if(n.sec) return `<div class="nav-section">${n.sec}</div>`;
+    const active = n.id===state.view?'active':'';
+    const badge = n.badge?`<span class="badge">${n.badge}</span>`:'';
+    return `<div class="nav-item ${active}" onclick="go('${n.id}')"><span class="ico">${n.ico}</span>${n.label}${badge}</div>`;
+  }).join('');
+
+  return `<div id="app" class="on">
+    <aside class="sidebar">
+      <div class="sb-brand">${logo(30)}<span class="tri-word">TRIN<span class="o">OS</span></span></div>
+      <div class="sb-role">
+        <div class="lbl">Viewing as</div>
+        <select class="role-select" onchange="switchRole(this.value)">
+          <option value="employee" ${state.role==='employee'?'selected':''}>Employee / Intern</option>
+          <option value="lead" ${state.role==='lead'?'selected':''}>Team Lead</option>
+          <option value="super" ${state.role==='super'?'selected':''}>MD (Managing Director)</option>
+          <option value="admin" ${state.role==='admin'?'selected':''}>Admin</option>
+        </select>
+      </div>
+      <nav class="sb-nav">${nav}</nav>
+      <div class="sb-user">
+        ${avatar(u.init)}
+        <div class="meta"><div class="nm">${u.name}</div><div class="rl">${u.title}</div></div>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="crumb">Trinos · ${u.title}</div>
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="searchbar"><span>⌕</span><input placeholder="Search reports, people, blockers…"></div>
+        <button class="topbar-icon" onclick="go('messages')">✉<span class="dot"></span></button>
+        <button class="topbar-icon">🔔<span class="dot"></span></button>
+      </header>
+      <div class="content" id="view-host"></div>
+    </main>
+  </div>`;
+}
+
+/* ============ VIEWS ============ */
+const TITLES = {dashboard:'Dashboard',submit:'Submit Daily Report',myreports:'My Reports',messages:'Messages',
+  leaddash:'Team Dashboard',teamreports:'Team Reports',blockers:'Blockers & Escalations',
+  orgdash:'Organization Dashboard',allreports:'All Reports',compliance:'Submission Compliance',
+  users:'User Management',teams:'Teams',settings:'Platform Settings',audit:'Audit Log'};
+
+function viewHTML(v){
+  switch(v){
+    case 'dashboard': return empDashboard();
+    case 'submit': return submitForm();
+    case 'myreports': return myReports();
+    case 'messages': return chat();
+    case 'leaddash': return leadDashboard();
+    case 'teamreports': return teamReports();
+    case 'blockers': return blockersView();
+    case 'orgdash': return orgDashboard();
+    case 'allreports': return allReports();
+    case 'compliance': return complianceView();
+    case 'users': return usersView();
+    case 'teams': return teamsView();
+    case 'settings': return settingsView();
+    case 'audit': return auditView();
+    default: return empDashboard();
+  }
+}
+
+/* ---------- EMPLOYEE: Dashboard ---------- */
+function empDashboard(){
+  return `<div class="fade">
+    <div class="page-head">
+      <div><div class="pe">Tuesday · 05 June 2026</div><h2>Good morning, Maya 👋</h2>
+        <p>You haven't submitted today's report yet. It takes about two minutes.</p></div>
+      <div class="head-actions"><button class="btn btn-primary" onclick="go('submit')">✎ Submit today's report</button></div>
+    </div>
+
+    <div class="grid g-4" style="margin-bottom:18px">
+      ${stat('ic-blue','◫','12','Reports this month','up','+2 vs last',logo(74))}
+      ${stat('ic-ok','✓','96%','On-time rate','up','Great streak',logo(74))}
+      ${stat('ic-warn','▲','1','Open blocker','flat','Awaiting review',logo(74))}
+      ${stat('ic-silver','⏱','9d','Submission streak','up','Personal best',logo(74))}
+    </div>
+
+    <div class="grid g-2-1">
+      <div class="card">
+        <div class="card-head"><div><h3>Recent submissions</h3><div class="sub">Only you can see your report history</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="go('myreports')">View all</button></div>
+        ${repRow('04','JUN','Daily status — Platform Team',['<span class="tag tag-ok">On time</span>'],'Finished the report routing service integration and wrote unit tests for the RBAC layer. Reviewed two PRs from the onboarding squad.')}
+        ${repRow('03','JUN','Daily status — Platform Team',['<span class="tag tag-ok">On time</span>','<span class="tag tag-warn">1 blocker</span>'],'Started work on the dip-tube notification queue. Blocked on staging DB credentials from infra.')}
+        ${repRow('02','JUN','Daily status — Platform Team',['<span class="tag tag-ok">On time</span>'],'Paired with David on the chat read-receipt logic. Closed CHAT-114 and CHAT-118.')}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card card-pad">
+          <h3 style="font-size:15px;margin-bottom:14px">Today at a glance</h3>
+          <div class="flex between center" style="margin-bottom:12px"><span class="small muted">Report status</span><span class="tag tag-danger">Not submitted</span></div>
+          <div class="flex between center" style="margin-bottom:12px"><span class="small muted">Submission deadline</span><span class="small" style="font-weight:600">6:00 PM</span></div>
+          <div class="flex between center" style="margin-bottom:16px"><span class="small muted">Routes to</span><span class="small" style="font-weight:600">D. Okoye +2</span></div>
+          <button class="btn btn-primary btn-block btn-sm" onclick="go('submit')">Start report</button>
+        </div>
+        <div class="card card-pad" style="background:var(--grad-soft);border-color:var(--blue-100)">
+          <div class="flex center gap" style="margin-bottom:10px">${logo(28)}<h3 style="font-size:14px">Draft in progress</h3></div>
+          <p class="small muted" style="margin-bottom:14px">You saved a draft yesterday at 5:42 PM. Pick up where you left off.</p>
+          <button class="btn btn-ghost btn-sm btn-block" onclick="go('submit')">Resume draft →</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function stat(icoCls,ico,val,lbl,delta,deltaTxt,corner){
+  const arrow = delta==='up'?'↑':delta==='down'?'↓':'•';
+  return `<div class="card stat">
+    <div class="corner">${corner}</div>
+    <div class="ico-box ${icoCls}">${ico}</div>
+    <div class="val">${val}</div><div class="lbl">${lbl}</div>
+    <div class="delta ${delta}">${arrow} ${deltaTxt}</div>
+  </div>`;
+}
+function repRow(d,m,title,tags,body){
+  return `<div class="rep-row">
+    <div class="rep-date"><div class="d">${d}</div><div class="m">${m}</div></div>
+    <div class="rep-body"><div class="t">${title} ${tags.join(' ')}</div><div class="x">${body}</div></div>
+  </div>`;
+}
+
+/* ---------- EMPLOYEE: Submit form ---------- */
+function submitForm(){
+  const tb = `<div class="toolbar"><span class="tb-btn"><b>B</b></span><span class="tb-btn"><i>I</i></span><span class="tb-btn">•</span><span class="tb-btn">🔗</span></div>`;
+  return `<div class="fade">
+    <div class="page-head">
+      <div><div class="pe">Tuesday · 05 June 2026 · auto-timestamped on submit</div><h2>Submit daily report</h2>
+        <p>Four structured fields. Everything routes automatically once you submit.</p></div>
+    </div>
+    <div class="card form-card">
+      <div class="form-field">
+        <div class="ff-head"><span class="ff-num">1</span><span class="ttl">What I did today</span><span class="req">Required</span></div>
+        <div class="ff-hint">Tasks completed during today's workday · min 20 characters</div>
+        ${tb}
+        <textarea class="textarea" oninput="charCount(this,'c1',20)" placeholder="Describe what you accomplished today…">Completed the report-routing service so submissions now fan out to the team lead and all MDs in real time. Added six unit tests covering the RBAC visibility rules.</textarea>
+        <div class="ff-foot"><span id="c1">187 characters</span><span>Rich text supported</span></div>
+      </div>
+      <div class="form-field">
+        <div class="ff-head"><span class="ff-num">2</span><span class="ttl">What's next</span><span class="req">Required</span></div>
+        <div class="ff-hint">Priorities for the next workday · min 10 characters</div>
+        ${tb}
+        <textarea class="textarea" oninput="charCount(this,'c2',10)" placeholder="What are you picking up next…">Wire the routing log into the audit trail and start the read-receipt indicators for the chat layer.</textarea>
+        <div class="ff-foot"><span id="c2">98 characters</span><span>Rich text supported</span></div>
+      </div>
+      <div class="form-field">
+        <div class="ff-head"><span class="ff-num">3</span><span class="ttl">Blockers / needs attention</span><span class="req">Required</span></div>
+        <div class="ff-hint">Impediments or escalations · enter "None" if there are none</div>
+        ${tb}
+        <textarea class="textarea" oninput="charCount(this,'c3',1)" placeholder="None">Still waiting on staging database credentials from infra — blocking the notification queue work since Monday.</textarea>
+        <div class="ff-foot"><span id="c3">110 characters</span><span><span class="tag tag-warn">Will flag a blocker</span></span></div>
+      </div>
+      <div class="form-field">
+        <div class="ff-head"><span class="ff-num">4</span><span class="ttl">Notes</span><span class="opt">Optional</span></div>
+        <div class="ff-hint">Links, references, or extra context</div>
+        ${tb}
+        <textarea class="textarea" placeholder="Anything else worth sharing…" style="min-height:64px">PR up for review: #CHAT-122. Demo recording in the shared drive.</textarea>
+      </div>
+      <div class="form-foot">
+        <span class="save-note"><span style="color:var(--ok)">●</span> Draft auto-saved 12s ago</span>
+        <button class="btn btn-ghost btn-sm" onclick="toast('Draft saved','✓')">Save draft</button>
+        <button class="btn btn-primary btn-sm" onclick="submitReport()">Submit report →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- EMPLOYEE: My reports ---------- */
+function myReports(){
+  const rows = [
+    ['04','JUN','On time',[],'Finished routing-service integration; wrote RBAC unit tests; reviewed two PRs.'],
+    ['03','JUN','1 blocker',[],'Started notification queue. Blocked on staging DB credentials.'],
+    ['02','JUN','On time',[],'Paired on chat read-receipts. Closed CHAT-114 and CHAT-118.'],
+    ['30','MAY','On time',[],'Shipped the draft auto-save feature; added 60s interval saving.'],
+    ['29','MAY','Edited',[],'Refined dashboard empty states and validation messages.'],
+  ];
+  const body = rows.map(r=>{
+    const tagcls = r[2]==='On time'?'tag-ok':r[2]==='1 blocker'?'tag-warn':r[2]==='Edited'?'tag-blue':'tag-gray';
+    return repRow(r[0],r[1],'Daily status — Platform Team',[`<span class="tag ${tagcls}">${r[2]}</span>`],r[4]);
+  }).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Private to you · RBAC-enforced</div><h2>My reports</h2>
+      <p>Your full submission history. Other employees cannot see these.</p></div>
+      <div class="head-actions">
+        <button class="btn btn-ghost btn-sm">⤓ Filter by date</button>
+        <button class="btn btn-primary btn-sm" onclick="go('submit')">✎ New report</button>
+      </div></div>
+    <div class="grid g-4" style="margin-bottom:18px">
+      ${miniStat('48','Total reports')}${miniStat('46','Submitted on time')}${miniStat('2','Edited within window')}${miniStat('96%','Compliance rate')}
+    </div>
+    <div class="card">${body}</div>
+  </div>`;
+}
+function miniStat(v,l){return `<div class="card card-pad" style="padding:16px 20px"><div style="font-family:Sora;font-size:24px;font-weight:700">${v}</div><div class="small muted" style="margin-top:3px">${l}</div></div>`;}
+
+/* ---------- TEAM LEAD: Dashboard ---------- */
+function leadDashboard(){
+  const days=['M','T','W','T','F'];
+  const members=[
+    ['Maya Sharma','maya.sharma@trinos.io','MS',['ok','ok','late','ok','miss']],
+    ['Leo Tan','leo.tan@trinos.io','LT',['ok','ok','ok','ok','ok']],
+    ['Priya Nair','priya.nair@trinos.io','PN',['ok','miss','ok','ok','ok']],
+    ['Jonas Vik','jonas.vik@trinos.io','JV',['ok','ok','ok','late','ok']],
+    ['Hana Cho','hana.cho@trinos.io','HC',['miss','ok','ok','ok','ok']],
+  ];
+  const head=`<div class="member-row head"><div>Team member</div>${days.map(d=>`<div style="text-align:center">${d}</div>`).join('')}</div>`;
+  const rows=members.map(m=>{
+    const cells=m[3].map(s=>{
+      const cls=s==='ok'?'dc-ok':s==='late'?'dc-late':'dc-miss';
+      const t=s==='ok'?'✓':s==='late'?'!':'–';
+      return `<div class="daycell ${cls}">${t}</div>`;
+    }).join('');
+    return `<div class="member-row"><div class="member-cell">${avatar(m[2],'sm')}<div><div class="nm">${m[0]}</div><div class="em">${m[1]}</div></div></div>${cells}</div>`;
+  }).join('');
+
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Platform Team · 5 members</div><h2>Team dashboard</h2>
+      <p>Consolidated view of every report from members you manage.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">⤓ This week ▾</button><button class="btn btn-ghost btn-sm">Export CSV</button></div></div>
+
+    <div class="grid g-4" style="margin-bottom:18px">
+      ${stat('ic-ok','✓','22/25','Submitted this week','up','88% on time',logo(74))}
+      ${stat('ic-warn','▲','3','Open blockers','down','1 escalated',logo(74))}
+      ${stat('ic-blue','☰','5','Reports today','flat','4 of 5 in',logo(74))}
+      ${stat('ic-silver','◷','2','Overdue','flat','Nudge sent',logo(74))}
+    </div>
+
+    <div class="grid g-2-1">
+      <div class="card">
+        <div class="card-head"><div><h3>Weekly submission status</h3><div class="sub">Per member · this week</div></div></div>
+        ${head}${rows}
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Flagged blockers</h3><div class="sub">Needs your attention</div></div>
+          <button class="btn btn-ghost btn-tiny" onclick="go('blockers')">All</button></div>
+        <div class="card-pad" style="padding:18px">
+          ${blocker('high','Staging DB credentials','Maya · blocked since Mon on the notification queue. Needs infra access.','Maya Sharma · 2d')}
+          ${blocker('med','Design sign-off pending','Priya · waiting on final mocks for the compliance view.','Priya Nair · 1d')}
+          ${blocker('med','Flaky CI on chat tests','Jonas · intermittent failures slowing merges.','Jonas Vik · 4h')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function blocker(sev,t,x,meta){
+  return `<div class="blocker ${sev==='med'?'med':''}"><div class="bk-ico">▲</div>
+    <div class="bk-body"><div class="bk-t">${t}</div><div class="bk-x">${x}</div>
+    <div class="bk-meta">${meta} <button class="btn btn-ghost btn-tiny" onclick="toast('Escalated to leadership','↑')">Escalate</button></div></div></div>`;
+}
+
+/* ---------- TEAM LEAD: Team reports ---------- */
+function teamReports(){
+  const data=[
+    ['Maya Sharma','MS','Today · 9:12 AM','On time','Finished routing service; wrote RBAC tests. Blocked on staging credentials.','1 blocker','tag-warn'],
+    ['Leo Tan','LT','Today · 8:48 AM','On time','Migrated chat history to searchable index. No blockers.','Clear','tag-ok'],
+    ['Jonas Vik','JV','Today · 9:30 AM','On time','Investigated flaky CI; isolated to chat read-receipt race condition.','1 blocker','tag-warn'],
+    ['Hana Cho','HC','Today · 8:21 AM','On time','Built dashboard date-range filter. Ready for review.','Clear','tag-ok'],
+    ['Priya Nair','PN','—','Pending','Has not submitted yet today.','Awaiting','tag-gray'],
+  ];
+  const rows=data.map(d=>`<div class="rep-row">
+    <div style="flex-shrink:0">${avatar(d[1],'sm')}</div>
+    <div class="rep-body"><div class="t">${d[0]} <span class="tag ${d[6]}">${d[5]}</span> <span class="small muted" style="font-weight:400">· ${d[2]}</span></div>
+      <div class="x">${d[4]}</div></div>
+    <button class="btn btn-ghost btn-tiny" style="align-self:center">Open</button>
+  </div>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Platform Team</div><h2>Team reports</h2>
+      <p>Filter by member, date, or submission status.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">Member ▾</button><button class="btn btn-ghost btn-sm">Status ▾</button><button class="btn btn-ghost btn-sm">Today ▾</button></div></div>
+    <div class="card">
+      <div class="card-head"><div><h3>Today's submissions</h3><div class="sub">4 of 5 members · 1 pending</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="toast('Consolidated summary generated','✓')">Consolidate ↧</button></div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+/* ---------- TEAM LEAD: Blockers ---------- */
+function blockersView(){
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Platform Team · 3 open</div><h2>Blockers & escalations</h2>
+      <p>Unresolved items pulled from today's reports. Escalate to leadership when needed.</p></div></div>
+    <div class="grid g-3" style="margin-bottom:18px">
+      ${miniStat('3','Open blockers')}${miniStat('1','Escalated to MD')}${miniStat('1.4d','Avg. time open')}
+    </div>
+    <div class="card card-pad">
+      <div class="section-title" style="margin-top:0">High priority</div>
+      ${blocker('high','Staging DB credentials','Maya · blocked since Monday on the notification queue. Needs infra to grant access.','Maya Sharma · 2 days open')}
+      <div class="section-title">Medium priority</div>
+      ${blocker('med','Design sign-off pending','Priya · waiting on final mocks for the compliance view before building.','Priya Nair · 1 day open')}
+      ${blocker('med','Flaky CI on chat tests','Jonas · intermittent failures slowing the merge queue.','Jonas Vik · 4 hours open')}
+    </div>
+  </div>`;
+}
+
+/* ---------- MD: Org dashboard ---------- */
+function orgDashboard(){
+  const teams=[
+    ['Platform Team','David Okoye · 5',88,'ok'],
+    ['Product Design','Erin Wallace · 4',95,'ok'],
+    ['Data & ML','Kofi Mensah · 6',72,'warn'],
+    ['Customer Success','Lara Petrov · 7',91,'ok'],
+    ['Infrastructure','Sven Holt · 4',61,'danger'],
+  ];
+  const bars=teams.map(t=>`<div class="team-bar">
+    <div class="tn">${t[0]}<small>${t[1]} members</small></div>
+    <div class="bar-track"><div class="bar-fill ${t[3]}" style="width:${t[2]}%"></div></div>
+    <div class="pct">${t[2]}%</div>
+  </div>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">All teams · all departments</div><h2>Organization dashboard</h2>
+      <p>Every report across the company routes here automatically. Full org-wide visibility.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">Last 7 days ▾</button><button class="btn btn-ghost btn-sm">Export</button></div></div>
+
+    <div class="grid g-4" style="margin-bottom:18px">
+      ${stat('ic-blue','☰','142','Reports today','up','+8 vs yesterday',logo(74))}
+      ${stat('ic-ok','✓','83%','Org compliance','down','−4 this week',logo(74))}
+      ${stat('ic-warn','▲','11','Flagged blockers','up','3 escalated',logo(74))}
+      ${stat('ic-silver','◈','26','Active teams','flat','181 people',logo(74))}
+    </div>
+
+    <div class="grid g-2-1">
+      <div class="card">
+        <div class="card-head"><div><h3>Compliance by team</h3><div class="sub">On-time submission rate · this week</div></div>
+          <button class="btn btn-ghost btn-tiny" onclick="go('compliance')">Details</button></div>
+        <div class="card-pad" style="padding:8px 22px 14px">${bars}</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Escalated blockers</h3><div class="sub">Surfaced by team leads</div></div></div>
+        <div class="card-pad" style="padding:18px">
+          ${blocker('high','Infra team below 65% compliance','Sven · sustained missed reports. May indicate capacity or morale issue.','Infrastructure · escalated')}
+          ${blocker('high','Staging environment outage','Cross-team · blocking 3 teams from deploying since Monday.','Platform + Data · escalated')}
+          ${blocker('med','Hiring freeze impact','Data & ML · understaffed, compliance slipping.','Data & ML · noted')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- MD: All reports ---------- */
+function allReports(){
+  const data=[
+    ['Maya Sharma','MS','Platform','Today 9:12','rp-emp'],
+    ['Kofi Mensah','KM','Data & ML','Today 9:05','rp-tl'],
+    ['Erin Wallace','EW','Product Design','Today 8:58','rp-tl'],
+    ['Leo Tan','LT','Platform','Today 8:48','rp-emp'],
+    ['Lara Petrov','LP','Customer Success','Today 8:40','rp-tl'],
+    ['Hana Cho','HC','Platform','Today 8:21','rp-emp'],
+  ];
+  const rows=data.map(d=>`<div class="rep-row">
+    <div style="flex-shrink:0">${avatar(d[1],'sm')}</div>
+    <div class="rep-body"><div class="t">${d[0]} <span class="tag tag-blue">${d[2]}</span></div>
+      <div class="x">Daily status report · submitted ${d[3]}</div></div>
+    <button class="btn btn-ghost btn-tiny" style="align-self:center">Open</button>
+  </div>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Org-wide · read access</div><h2>All reports</h2>
+      <p>Filter across every team, department, date range, or individual.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">Team ▾</button><button class="btn btn-ghost btn-sm">Department ▾</button><button class="btn btn-ghost btn-sm">Date ▾</button><button class="btn btn-ghost btn-sm">Export CSV</button></div></div>
+    <div class="card"><div class="card-head"><div><h3>Today · 142 reports</h3><div class="sub">Across 26 teams</div></div></div>${rows}
+      <div style="padding:14px 22px;text-align:center"><button class="btn btn-ghost btn-sm">Load more →</button></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- MD: Compliance ---------- */
+function complianceView(){
+  const rows=[
+    ['Daily','83%','warn'],['Weekly','89%','ok'],['Monthly','91%','ok']
+  ];
+  const cards=rows.map(r=>`<div class="card card-pad">
+    <div class="small muted" style="margin-bottom:8px">${r[0]} compliance</div>
+    <div style="font-family:Sora;font-size:30px;font-weight:700;margin-bottom:12px">${r[1]}</div>
+    <div class="bar-track"><div class="bar-fill ${r[2]}" style="width:${r[1]}"></div></div>
+  </div>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Organization metrics</div><h2>Submission compliance</h2>
+      <p>Daily, weekly, and monthly compliance across the whole organization.</p></div></div>
+    <div class="grid g-3" style="margin-bottom:18px">${cards}</div>
+    <div class="card">
+      <div class="card-head"><div><h3>Lowest-performing teams</h3><div class="sub">Needs leadership attention</div></div></div>
+      <div class="card-pad" style="padding:8px 22px 14px">
+        <div class="team-bar"><div class="tn">Infrastructure<small>Sven Holt · 4</small></div><div class="bar-track"><div class="bar-fill danger" style="width:61%"></div></div><div class="pct">61%</div></div>
+        <div class="team-bar"><div class="tn">Data & ML<small>Kofi Mensah · 6</small></div><div class="bar-track"><div class="bar-fill warn" style="width:72%"></div></div><div class="pct">72%</div></div>
+        <div class="team-bar"><div class="tn">Sales East<small>Tom Reyes · 5</small></div><div class="bar-track"><div class="bar-fill warn" style="width:76%"></div></div><div class="pct">76%</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- ADMIN: Users ---------- */
+function usersView(){
+  const users=[
+    ['Maya Sharma','maya.sharma@trinos.io','MS','Employee','rp-emp','Platform','Active'],
+    ['David Okoye','david.okoye@trinos.io','DO','Team Lead','rp-tl','Platform','Active'],
+    ['Anita Reyes','anita.reyes@trinos.io','AR','MD','rp-sa','Executive','Active'],
+    ['Kofi Mensah','kofi.mensah@trinos.io','KM','Team Lead','rp-tl','Data & ML','Active'],
+    ['Leo Tan','leo.tan@trinos.io','LT','Employee','rp-emp','Platform','Active'],
+    ['Sam Cole','sam.cole@trinos.io','SC','Admin','rp-adm','Operations','Active'],
+    ['Jess Vaughn','jess.vaughn@trinos.io','JV','Employee','rp-emp','Design','Deactivated'],
+  ];
+  const rows=users.map(u=>`<tr>
+    <td><div class="cell-user">${avatar(u[2],'sm')}<div><div class="nm">${u[0]}</div><div class="em">${u[1]}</div></div></div></td>
+    <td><span class="role-pill ${u[4]}">${u[3]}</span></td>
+    <td>${u[5]}</td>
+    <td>${u[6]==='Active'?'<span class="tag tag-ok">Active</span>':'<span class="tag tag-gray">Deactivated</span>'}</td>
+    <td style="text-align:right"><button class="tbl-act">⋯</button></td>
+  </tr>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Administration · 181 users</div><h2>User management</h2>
+      <p>Create accounts, assign roles, and manage team memberships. Self-registration is disabled.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">⤓ Import</button><button class="btn btn-primary btn-sm" onclick="toast('New user dialog opened','+')">+ Add user</button></div></div>
+    <div class="grid g-4" style="margin-bottom:18px">
+      ${miniStat('181','Total users')}${miniStat('168','Active')}${miniStat('26','Team leads')}${miniStat('3','MDs')}
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>All users</h3></div><div class="searchbar" style="width:240px;margin:0"><span>⌕</span><input placeholder="Search users…"></div></div>
+      <table class="tbl"><thead><tr><th>User</th><th>Role</th><th>Team</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    </div>
+  </div>`;
+}
+
+/* ---------- ADMIN: Teams ---------- */
+function teamsView(){
+  const teams=[
+    ['Platform Team','David Okoye','DO',5,'rp-tl'],
+    ['Product Design','Erin Wallace','EW',4,'rp-tl'],
+    ['Data & ML','Kofi Mensah','KM',6,'rp-tl'],
+    ['Customer Success','Lara Petrov','LP',7,'rp-tl'],
+    ['Infrastructure','Sven Holt','SH',4,'rp-tl'],
+    ['Sales East','Tom Reyes','TR',5,'rp-tl'],
+  ];
+  const cards=teams.map(t=>`<div class="card card-pad">
+    <div class="flex between center" style="margin-bottom:14px"><h3 style="font-size:16px">${t[0]}</h3><button class="tbl-act">⋯</button></div>
+    <div class="flex center gap" style="margin-bottom:14px">${avatar(t[2],'sm')}<div><div class="small" style="font-weight:600">${t[1]}</div><div class="small muted">Team Lead</div></div></div>
+    <div class="divider"></div>
+    <div class="flex between center"><span class="small muted">${t[3]} members</span><button class="btn btn-ghost btn-tiny">Manage</button></div>
+  </div>`).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Administration · 26 teams</div><h2>Teams</h2>
+      <p>Team structures mirror the organizational hierarchy. Assign members and a lead to each.</p></div>
+      <div class="head-actions"><button class="btn btn-primary btn-sm" onclick="toast('New team dialog opened','+')">+ Create team</button></div></div>
+    <div class="grid g-3">${cards}</div>
+  </div>`;
+}
+
+/* ---------- ADMIN: Settings ---------- */
+function settingsView(){
+  const setting=(t,x,val)=>`<div class="flex between center" style="padding:16px 0;border-bottom:1px solid var(--line)">
+    <div><div style="font-weight:600;font-size:14.5px">${t}</div><div class="small muted" style="margin-top:2px">${x}</div></div>
+    <div style="flex-shrink:0">${val}</div></div>`;
+  const sel=(opts)=>`<select class="input" style="height:38px;width:auto;min-width:130px">${opts.map(o=>`<option>${o}</option>`).join('')}</select>`;
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Administration</div><h2>Platform settings</h2>
+      <p>Configure organization-wide behavior. Changes apply immediately.</p></div></div>
+    <div class="card card-pad form-card">
+      <div class="section-title" style="margin-top:0">Report submission</div>
+      ${setting('Edit window','How long after submitting a report can it be edited',sel(['1 hour','2 hours','Until end of day','Disabled']))}
+      ${setting('Submission deadline','Daily cut-off for on-time reports',sel(['6:00 PM','5:00 PM','End of day','No deadline']))}
+      ${setting('Organization timezone','Used for timestamps and deadlines',sel(['Asia/Kolkata (IST)','UTC','America/New_York','Europe/London']))}
+      <div class="section-title">Notifications</div>
+      ${setting('Overdue reminders','Notify users who have not submitted',sel(['At 4 PM & 5 PM','At deadline only','Off']))}
+      ${setting('Delivery channel','Where notifications are sent',sel(['In-platform only','In-platform + email','All channels']))}
+      <div class="section-title">Security & data</div>
+      ${setting('Session timeout','Auto sign-out after inactivity',sel(['30 minutes','1 hour','8 hours']))}
+      ${setting('Data retention','Minimum report retention period',sel(['12 months','24 months','Indefinite']))}
+      <div style="margin-top:20px;display:flex;gap:10px"><button class="btn btn-primary btn-sm" onclick="toast('Settings saved','✓')">Save changes</button><button class="btn btn-ghost btn-sm">Cancel</button></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- ADMIN: Audit ---------- */
+function auditView(){
+  const logs=[
+    ['Role changed','Anita Reyes promoted Kofi Mensah to Team Lead','AR','5 min ago','rp-sa'],
+    ['User created','Sam Cole created account for Nina Ortiz','SC','22 min ago','rp-adm'],
+    ['Unauthorized access','Blocked attempt to view Platform reports by Jess Vaughn','JV','1 hr ago','rp-emp'],
+    ['Settings updated','Sam Cole changed edit window to 1 hour','SC','3 hr ago','rp-adm'],
+    ['User deactivated','Sam Cole deactivated Jess Vaughn','SC','Yesterday','rp-adm'],
+    ['Login failed','5 failed attempts for leo.tan@trinos.io — account locked','LT','Yesterday','rp-emp'],
+  ];
+  const rows=logs.map(l=>{
+    const danger = l[0].includes('Unauthorized')||l[0].includes('failed');
+    return `<tr>
+    <td><span class="tag ${danger?'tag-danger':'tag-blue'}">${l[0]}</span></td>
+    <td style="color:var(--ink-2)">${l[1]}</td>
+    <td><div class="cell-user">${avatar(l[2],'sm')}</div></td>
+    <td class="muted">${l[3]}</td>
+  </tr>`}).join('');
+  return `<div class="fade">
+    <div class="page-head"><div><div class="pe">Administration · immutable log</div><h2>Audit log</h2>
+      <p>Every sensitive action — role changes, deletions, access attempts — is recorded here.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost btn-sm">Filter ▾</button><button class="btn btn-ghost btn-sm">Export</button></div></div>
+    <div class="card">
+      <table class="tbl"><thead><tr><th>Event</th><th>Detail</th><th>Actor</th><th>When</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>
+  </div>`;
+}
+
+/* ---------- CHAT ---------- */
+function chat(){
+  const convs=[
+    ['David Okoye','DO','Sounds good — escalating the DB blocker now.','9:14 AM',0,true],
+    ['Platform Team','PT','Leo: chat search index is live 🎉','8:50 AM',2,false],
+    ['Trinos Assistant','◮','You have 1 report due today.','8:00 AM',1,false],
+    ['Anita Reyes','AR','Great work on the routing service.','Yesterday',0,false],
+    ['Priya Nair','PN','Can you review my PR?','Yesterday',0,false],
+  ];
+  const list=convs.map((c,i)=>`<div class="conv-item ${i===0?'active':''}">
+    ${avatar(c[1],'sm')}
+    <div class="ci-body"><div class="ci-top"><span class="ci-nm">${c[0]}</span><span class="ci-time">${c[3]}</span></div>
+      <div class="ci-last">${c[2]}</div></div>
+    ${c[4]?`<span class="ci-unread">${c[4]}</span>`:''}
+  </div>`).join('');
+
+  return `<div class="fade" style="margin-top:-8px">
+    <div class="chat-wrap">
+      <div class="chat-list">
+        <div class="chat-search"><div class="searchbar"><span>⌕</span><input placeholder="Search messages…"></div></div>
+        <div class="chat-conv">${list}</div>
+      </div>
+      <div class="chat-panel">
+        <div class="chat-top">${avatar('DO','sm')}<div><div class="ct-nm">David Okoye</div><div class="ct-sub">Online · Team Lead</div></div>
+          <button class="btn btn-ghost btn-tiny" style="margin-left:auto">View profile</button></div>
+        <div class="chat-body" id="chat-body">
+          <div class="chat-day">Today</div>
+          <div class="msg in"><div class="bubble">Morning Maya — saw your report. The staging credential blocker, is that still open?</div><div class="meta">9:08 AM</div></div>
+          <div class="msg out"><div class="msg-ref">📎 Daily report · 05 Jun</div><div class="bubble">Yes, still blocked. Flagged it again in today's report.</div><div class="meta">9:11 AM · Read</div></div>
+          <div class="msg in"><div class="bubble">Sounds good — escalating the DB blocker to infra now.</div><div class="meta">9:14 AM</div></div>
+          <div class="bot-card">
+            <div class="bc-head">${logo(18)} Trinos Assistant</div>
+            <div class="small">Quick actions for today:</div>
+            <div class="bc-quick">
+              <button class="quick" onclick="go('submit')">Submit today's report ↗</button>
+              <button class="quick" onclick="toast('Blocker status shared','✓')">Share blocker status</button>
+              <button class="quick" onclick="toast('Opening this week','◫')">View my week</button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <button class="btn btn-ghost btn-tiny" style="width:40px">📎</button>
+          <input id="chat-text" placeholder="Message David…" onkeydown="if(event.key==='Enter')sendMsg()">
+          <button class="chat-send" onclick="sendMsg()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ INTERACTIONS ============ */
+function mount(){document.getElementById('root').innerHTML = renderLogin();}
+function enterApp(){
+  document.getElementById('login').style.display='none';
+  state.view = DEFAULT_VIEW[state.role];
+  document.getElementById('root').innerHTML = renderApp();
+  renderView();
+}
+function switchRole(r){
+  state.role=r; state.view=DEFAULT_VIEW[r];
+  document.getElementById('root').innerHTML = renderApp();
+  renderView();
+}
+function go(v){
+  state.view=v;
+  // refresh nav active states
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('root').innerHTML = renderApp();
+  renderView();
+}
+function renderView(){
+  const host=document.getElementById('view-host');
+  const title=document.getElementById('page-title');
+  if(title) title.textContent = TITLES[state.view]||'Dashboard';
+  if(host) host.innerHTML = viewHTML(state.view);
+}
+function charCount(el,id,min){
+  const n=el.value.length;
+  const t=document.getElementById(id);
+  if(t) t.textContent = n+' characters'+(n<min?` · ${min-n} more needed`:'');
+  if(t) t.style.color = n<min?'var(--danger)':'var(--ink-4)';
+}
+function submitReport(){
+  toast('Report submitted · routed to D. Okoye + 2 MDs','✓');
+  setTimeout(()=>{state.view='dashboard';go('dashboard');},900);
+}
+function sendMsg(){
+  const i=document.getElementById('chat-text'); if(!i||!i.value.trim())return;
+  const body=document.getElementById('chat-body');
+  const m=document.createElement('div'); m.className='msg out';
+  m.innerHTML=`<div class="bubble">${i.value.replace(/</g,'&lt;')}</div><div class="meta">Now · Sent</div>`;
+  body.appendChild(m); i.value=''; body.scrollTop=body.scrollHeight;
+}
+let toastT;
+function toast(msg,ic){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.querySelector('.ti').textContent=ic||'✓';
+  t.classList.add('show'); clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+mount();
+
+</script>
+</body>
+</html>
