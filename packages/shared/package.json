@@ -2,19 +2,26 @@
   "name": "@trinos/shared",
   "version": "0.1.0",
   "private": true,
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "typecheck": "tsc --noEmit --project tsconfig.json",
-    "dev": "tsc --watch --project tsconfig.json"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
   },
-  "devDependencies": {}
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsup": "^8.1.0",
+    "typescript": "^5.5.3"
+  }
 }
