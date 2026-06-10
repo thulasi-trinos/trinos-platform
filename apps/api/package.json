@@ -1,0 +1,16 @@
+{
+  "name": "@trinos/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'api dev placeholder'",
+    "build": "echo 'api build placeholder'",
+    "typecheck": "tsc --noEmit",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@trinos/shared": "*"
+  },
+  "devDependencies": {}
+}
