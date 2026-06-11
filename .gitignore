@@ -38,7 +38,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Prisma
-prisma/migrations/
+#prisma/migrations/
 
 # Misc
 *.tsbuildinfo
+
+#docker
+docker-compose.override.yml
+
+

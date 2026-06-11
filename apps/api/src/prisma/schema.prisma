@@ -1,0 +1,327 @@
+// Trinos Platform — Prisma schema
+// Domain source of truth lives in @trinos/shared; this mirrors those entities.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────
+
+enum Role {
+  EMPLOYEE
+  TEAM_LEAD
+  MD
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum BlockerStatus {
+  OPEN
+  ESCALATED
+  RESOLVED
+}
+
+enum RoutingChannel {
+  TEAM_LEAD
+  MD
+}
+
+enum ChannelType {
+  TEAM
+  DIRECT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+// ─── Identity ───────────────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  designation  String?
+  passwordHash String
+  teamId       String?
+  roles        Role[]     @default([EMPLOYEE])
+  status       UserStatus @default(ACTIVE)
+  isSuperAdmin Boolean    @default(false)
+
+  // Login lockout (FR-AUTH / NFR-SEC)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team            Team?                @relation("TeamMembers", fields: [teamId], references: [id])
+  ledTeam         Team?                @relation("TeamLead")
+  reports         Report[]
+  flagsRaised     BlockerFlag[]        @relation("BlockerFlaggedBy")
+  flagsResolved   BlockerFlag[]        @relation("BlockerResolvedBy")
+  routingLogs     RoutingLog[]
+  channelMembers  ChannelMember[]
+  messagesSent    Message[]
+  messageReceipts MessageReceipt[]
+  notifications   Notification[]
+  notifPreference NotificationPreference?
+  refreshTokens   RefreshToken[]
+  resetTokens     PasswordResetToken[]
+  auditLogs       AuditLog[]
+
+  @@index([teamId])
+  @@map("users")
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  leadUserId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  lead     User?     @relation("TeamLead", fields: [leadUserId], references: [id])
+  members  User[]    @relation("TeamMembers")
+  reports  Report[]
+  channels Channel[]
+
+  @@map("teams")
+}
+
+// ─── Reporting ──────────────────────────────────────────────────────────────
+
+model Report {
+  id            String       @id @default(cuid())
+  code          String       @unique // RPT-YYYY-NNNN
+  authorId      String
+  teamId        String
+  reportDate    DateTime     @db.Date
+  fieldDidToday String       @default("")
+  fieldNext     String       @default("")
+  fieldBlockers String       @default("")
+  fieldNotes    String?
+  hasBlockers   Boolean      @default(false)
+  status        ReportStatus @default(DRAFT)
+  submittedAt   DateTime?
+  editableUntil DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  author       User          @relation(fields: [authorId], references: [id])
+  team         Team          @relation(fields: [teamId], references: [id])
+  blockerFlags BlockerFlag[]
+  routingLogs  RoutingLog[]
+
+  @@unique([authorId, reportDate]) // FR-REP-05: one report per author per date
+  @@index([teamId])
+  @@index([status])
+  @@map("reports")
+}
+
+model BlockerFlag {
+  id                     String        @id @default(cuid())
+  reportId               String
+  flaggedById            String
+  flaggedByRole          Role
+  status                 BlockerStatus @default(OPEN)
+  note                   String?
+  escalatedToSuperAdmins Boolean       @default(false)
+  resolvedById           String?
+  resolvedAt             DateTime?
+  createdAt              DateTime      @default(now())
+
+  report     Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  flaggedBy  User   @relation("BlockerFlaggedBy", fields: [flaggedById], references: [id])
+  resolvedBy User?  @relation("BlockerResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([reportId])
+  @@index([status])
+  @@map("blocker_flags")
+}
+
+model RoutingLog {
+  id            String         @id @default(cuid())
+  reportId      String
+  recipientId   String
+  recipientRole Role
+  channel       RoutingChannel
+  deliveredAt   DateTime       @default(now())
+
+  report    Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  recipient User   @relation(fields: [recipientId], references: [id])
+
+  @@index([reportId])
+  @@index([recipientId])
+  @@map("routing_logs")
+}
+
+// ─── Messaging ────────────────────────────────────────────────────────────
+
+model Channel {
+  id        String      @id @default(cuid())
+  type      ChannelType
+  teamId    String?
+  name      String?
+  createdAt DateTime    @default(now())
+
+  team     Team?           @relation(fields: [teamId], references: [id])
+  members  ChannelMember[]
+  messages Message[]
+
+  @@index([teamId])
+  @@map("channels")
+}
+
+model ChannelMember {
+  id        String   @id @default(cuid())
+  channelId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@map("channel_members")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  channelId   String
+  senderId    String
+  body        String
+  reportRefId String?
+  isBroadcast Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  channel  Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender   User             @relation(fields: [senderId], references: [id])
+  receipts MessageReceipt[]
+
+  @@index([channelId])
+  @@map("messages")
+}
+
+model MessageReceipt {
+  id        String    @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@map("message_receipts")
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+model Notification {
+  id         String              @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  entityType String?
+  entityId   String?
+  channel    NotificationChannel @default(IN_APP)
+  readAt     DateTime?
+  createdAt  DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  emailEnabled Boolean @default(true)
+  inAppEnabled Boolean @default(true)
+  perTypePrefs Json    @default("{}")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ─── System ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  details    Json     @default("{}")
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// ─── Auth tokens ──────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
