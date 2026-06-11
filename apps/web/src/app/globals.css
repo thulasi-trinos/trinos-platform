@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Trinos design tokens — style guide §2, §7, §8, §12
+   All colours live here as CSS custom properties; tailwind.config.ts
+   maps utility classes onto these variables.
+   ============================================================ */
+:root {
+  /* Brand blues */
+  --blue-900: #1b3a52;
+  --blue-800: #234c6b;
+  --blue-700: #2e5878;
+  --blue-600: #356a92;
+  --blue-500: #3d7aa8;
+  --blue-400: #5b8bb5;
+  --blue-300: #8db1ce;
+  --blue-200: #c0d5e6;
+  --blue-100: #dce8f1;
+  --blue-50: #eef4f9;
+
+  /* Silver neutrals */
+  --silver-700: #6b727b;
+  --silver-600: #8a9099;
+  --silver-500: #9ca2ab;
+  --silver-400: #aeb4bc;
+  --silver-300: #c5cad1;
+  --silver-200: #d9dde2;
+  --silver-100: #e8ebee;
+  --silver-50: #f4f6f8;
+
+  /* Ink (text) */
+  --ink: #172430;
+  --ink-2: #3a4756;
+  --ink-3: #6a7686;
+  --ink-4: #97a1ad;
+
+  /* Paper (backgrounds) */
+  --paper: #ffffff;
+  --paper-2: #f5f7fa;
+  --paper-3: #eef1f5;
+
+  /* Lines (borders) */
+  --line: #e4e9ee;
+  --line-2: #d6dde4;
+
+  /* Semantic */
+  --ok: #2e8b6f;
+  --ok-bg: #e4f2ec;
+  --warn: #c8852a;
+  --warn-bg: #fbf0df;
+  --danger: #c0473f;
+  --danger-bg: #fbe9e7;
+  --purple: #7b4a9e;
+  --purple-bg: #efe7f5;
+
+  /* Gradients */
+  --grad-tri: linear-gradient(135deg, #5b8bb5 0%, #3d7aa8 55%, #2e5878 100%);
+  --grad-deep: linear-gradient(135deg, #1b3a52 0%, #2e5878 55%, #3d7aa8 100%);
+
+  /* Border-radius scale (§7) */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  /* Shadow scale (§8) — base colour derived from --ink (23,36,48) */
+  --shadow-sm: 0 1px 2px rgba(23, 36, 48, 0.06), 0 1px 3px rgba(23, 36, 48, 0.04);
+  --shadow-md: 0 4px 14px rgba(23, 36, 48, 0.08), 0 2px 6px rgba(23, 36, 48, 0.05);
+  --shadow-lg: 0 18px 50px rgba(23, 36, 48, 0.16);
+}
+
+/* ============================================================
+   Base resets
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-hanken), system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper-2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+a {
+  color: var(--blue-500);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--blue-200);
+}
+
+/* Scrollbar — style guide §2 (silver thumb) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--silver-300);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--silver-400);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
