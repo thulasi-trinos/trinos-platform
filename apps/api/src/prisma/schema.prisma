@@ -53,6 +53,12 @@ enum NotificationChannel {
 
 // ─── Identity ───────────────────────────────────────────────────────────────
 
+/// Retention & anonymisation (Constraint 10.3): users are NEVER hard-deleted,
+/// because their reports must survive. "Deletion" is a soft-delete —
+/// `status` is set to INACTIVE and `email` is scrambled with a timestamp suffix
+/// (e.g. `deleted+<userId>+<ts>@anon.invalid`) to free the unique constraint.
+/// Reports retain their `authorId` and surface an anonymised author label at the
+/// app layer. See the admin user-deletion service (Phase 7) for the mechanics.
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
@@ -60,7 +66,7 @@ model User {
   designation  String?
   passwordHash String
   teamId       String?
-  roles        Role[]     @default([EMPLOYEE])
+  roles        UserRole[] // multi-role support; see UserRole join model
   status       UserStatus @default(ACTIVE)
   isSuperAdmin Boolean    @default(false)
 
@@ -72,11 +78,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  team            Team?                @relation("TeamMembers", fields: [teamId], references: [id])
-  ledTeam         Team?                @relation("TeamLead")
+  team            Team?                   @relation("TeamMembers", fields: [teamId], references: [id])
+  ledTeam         Team?                   @relation("TeamLead")
   reports         Report[]
-  flagsRaised     BlockerFlag[]        @relation("BlockerFlaggedBy")
-  flagsResolved   BlockerFlag[]        @relation("BlockerResolvedBy")
+  flagsRaised     BlockerFlag[]           @relation("BlockerFlaggedBy")
+  flagsResolved   BlockerFlag[]           @relation("BlockerResolvedBy")
   routingLogs     RoutingLog[]
   channelMembers  ChannelMember[]
   messagesSent    Message[]
@@ -89,6 +95,19 @@ model User {
 
   @@index([teamId])
   @@map("users")
+}
+
+/// Multi-role support — a user may hold several roles simultaneously.
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  role   Role
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@map("user_roles")
 }
 
 model Team {
@@ -131,8 +150,8 @@ model Report {
   routingLogs  RoutingLog[]
 
   @@unique([authorId, reportDate]) // FR-REP-05: one report per author per date
-  @@index([teamId])
-  @@index([status])
+  @@index([teamId, reportDate])
+  @@index([status, reportDate])
   @@map("reports")
 }
 
@@ -282,18 +301,29 @@ model AuditLog {
   user User? @relation(fields: [userId], references: [id])
 
   @@index([entityType, entityId])
-  @@index([createdAt])
+  @@index([userId, createdAt])
   @@map("audit_logs")
 }
 
+// Seeded keys: 'report.edit_window_minutes', 'report.deadline_local_time',
+// 'org.timezone', 'auth.session_timeout_hours', 'report.retention_months'
 model SystemConfig {
   id          String   @id @default(cuid())
   key         String   @unique
-  value       String
+  value       Json
   updatedById String?
   updatedAt   DateTime @updatedAt
 
   @@map("system_config")
+}
+
+/// Monotonic per-year counter backing human-readable report codes (RPT-YYYY-NNNN).
+model ReportCodeSeq {
+  id      String @id @default(cuid())
+  year    Int    @unique
+  lastSeq Int    @default(0)
+
+  @@map("report_code_seq")
 }
 
 // ─── Auth tokens ──────────────────────────────────────────────────────────

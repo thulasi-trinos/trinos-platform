@@ -16,7 +16,7 @@ async function main(): Promise<void> {
       email: 'admin@trinos.ai',
       name: 'Trinos Admin',
       passwordHash: password,
-      roles: ['ADMIN'],
+      roles: { create: [{ role: 'ADMIN' }] },
       isSuperAdmin: true,
     },
   });
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
       name: 'Team Lead',
       designation: 'Engineering Lead',
       passwordHash: password,
-      roles: ['TEAM_LEAD'],
+      roles: { create: [{ role: 'TEAM_LEAD' }] },
     },
   });
 
@@ -51,17 +51,27 @@ async function main(): Promise<void> {
       name: 'Eve Employee',
       designation: 'Software Engineer',
       passwordHash: password,
-      roles: ['EMPLOYEE'],
+      roles: { create: [{ role: 'EMPLOYEE' }] },
       teamId: team.id,
     },
   });
 
-  // Baseline system config
-  await prisma.systemConfig.upsert({
-    where: { key: 'report.deadline_local_time' },
-    update: {},
-    create: { key: 'report.deadline_local_time', value: '18:00', updatedById: admin.id },
-  });
+  // Baseline system config (values are JSON: numbers stay numeric, times/zones are strings)
+  const configDefaults: Record<string, unknown> = {
+    'report.edit_window_minutes': 60,
+    'report.deadline_local_time': '18:00',
+    'org.timezone': 'Asia/Kolkata',
+    'auth.session_timeout_hours': 8,
+    'report.retention_months': 12,
+  };
+
+  for (const [key, value] of Object.entries(configDefaults)) {
+    await prisma.systemConfig.upsert({
+      where: { key },
+      update: {},
+      create: { key, value: value as never, updatedById: admin.id },
+    });
+  }
 
   // eslint-disable-next-line no-console
   console.log('✔ Seed complete: admin@trinos.ai / lead@trinos.ai / employee@trinos.ai (pw: Trinos@12345)');

@@ -27,7 +27,6 @@ CREATE TABLE "users" (
     "designation" TEXT,
     "passwordHash" TEXT NOT NULL,
     "teamId" TEXT,
-    "roles" "Role"[] DEFAULT ARRAY['EMPLOYEE']::"Role"[],
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false,
     "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
@@ -37,6 +36,15 @@ CREATE TABLE "users" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_roles" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+
+    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -188,11 +196,20 @@ CREATE TABLE "audit_logs" (
 CREATE TABLE "system_config" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
-    "value" TEXT NOT NULL,
+    "value" JSONB NOT NULL,
     "updatedById" TEXT,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "system_config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "report_code_seq" (
+    "id" TEXT NOT NULL,
+    "year" INTEGER NOT NULL,
+    "lastSeq" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "report_code_seq_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -226,6 +243,12 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE INDEX "users_teamId_idx" ON "users"("teamId");
 
 -- CreateIndex
+CREATE INDEX "user_roles_userId_idx" ON "user_roles"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_roles_userId_role_key" ON "user_roles"("userId", "role");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "teams_name_key" ON "teams"("name");
 
 -- CreateIndex
@@ -235,10 +258,10 @@ CREATE UNIQUE INDEX "teams_leadUserId_key" ON "teams"("leadUserId");
 CREATE UNIQUE INDEX "reports_code_key" ON "reports"("code");
 
 -- CreateIndex
-CREATE INDEX "reports_teamId_idx" ON "reports"("teamId");
+CREATE INDEX "reports_teamId_reportDate_idx" ON "reports"("teamId", "reportDate");
 
 -- CreateIndex
-CREATE INDEX "reports_status_idx" ON "reports"("status");
+CREATE INDEX "reports_status_reportDate_idx" ON "reports"("status", "reportDate");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "reports_authorId_reportDate_key" ON "reports"("authorId", "reportDate");
@@ -283,10 +306,13 @@ CREATE UNIQUE INDEX "notification_preferences_userId_key" ON "notification_prefe
 CREATE INDEX "audit_logs_entityType_entityId_idx" ON "audit_logs"("entityType", "entityId");
 
 -- CreateIndex
-CREATE INDEX "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
+CREATE INDEX "audit_logs_userId_createdAt_idx" ON "audit_logs"("userId", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "system_config_key_key" ON "system_config"("key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "report_code_seq_year_key" ON "report_code_seq"("year");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_tokenHash_key" ON "refresh_tokens"("tokenHash");
@@ -302,6 +328,9 @@ CREATE INDEX "password_reset_tokens_userId_idx" ON "password_reset_tokens"("user
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "teams" ADD CONSTRAINT "teams_leadUserId_fkey" FOREIGN KEY ("leadUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -362,3 +391,10 @@ ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_userId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ─── Field-length CHECK constraints (PRD §5 report field rules) ───────────────
+-- Mirrored in apps/api/src/prisma/migrations/20260611103804_init/post.sql for
+-- documentation; these are the authoritative, auto-applied definitions.
+ALTER TABLE "reports" ADD CONSTRAINT "reports_fieldDidToday_minlen_chk" CHECK (char_length(btrim("fieldDidToday")) >= 20);
+ALTER TABLE "reports" ADD CONSTRAINT "reports_fieldNext_minlen_chk"     CHECK (char_length(btrim("fieldNext"))     >= 10);
+ALTER TABLE "reports" ADD CONSTRAINT "reports_fieldBlockers_minlen_chk" CHECK (char_length(btrim("fieldBlockers")) >= 1);
